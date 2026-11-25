@@ -1,27 +1,33 @@
-import { useState } from "react";
-import { View, Text, Image, Pressable, StyleSheet } from "react-native";
+import { View, Text, Image, Pressable, Alert, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
-import SideMenu from "./SideMenu";
 import { colors } from "../utils/theme";
 
-export default function ScreenLayout({ children }) {
-    const { isAdmin } = useAuth();
-    const [menuOpen, setMenuOpen] = useState(false);
+export default function ScreenLayout({ children, back = false }) {
+    const navigation = useNavigation();
+    const { isAdmin, logout } = useAuth();
 
-    const handleOpenMenu = () => setMenuOpen(true);
-    const handleCloseMenu = () => setMenuOpen(false);
+    const handleBack = () => navigation.goBack();
+
+    const handleLogout = () => {
+        Alert.alert("Cerrar sesión", "¿Quieres salir de tu cuenta?", [
+            { text: "Cancelar", style: "cancel" },
+            { text: "Salir", style: "destructive", onPress: logout },
+        ]);
+    };
 
     return (
         <View style={styles.root}>
             <SafeAreaView edges={["top"]} style={styles.header}>
                 <View style={styles.row}>
-                    <Pressable onPress={handleOpenMenu} hitSlop={12} accessibilityLabel="Abrir menú">
-                        <Ionicons name="menu" size={28} color="#fff" />
-                    </Pressable>
-
-                    <View style={styles.brand}>
+                    <View style={styles.left}>
+                        {back && (
+                            <Pressable onPress={handleBack} hitSlop={12} accessibilityLabel="Volver">
+                                <Ionicons name="arrow-back" size={26} color="#fff" />
+                            </Pressable>
+                        )}
                         <Image
                             source={require("../../assets/logo-sports.png")}
                             style={styles.logo}
@@ -30,15 +36,18 @@ export default function ScreenLayout({ children }) {
                         <Text style={styles.brandText}>UTR Sports</Text>
                     </View>
 
-                    <View style={styles.chip}>
-                        <Text style={styles.chipText}>{isAdmin ? "ADMIN" : "ALUMNO"}</Text>
+                    <View style={styles.right}>
+                        <View style={styles.chip}>
+                            <Text style={styles.chipText}>{isAdmin ? "ADMIN" : "ALUMNO"}</Text>
+                        </View>
+                        <Pressable onPress={handleLogout} hitSlop={12} accessibilityLabel="Cerrar sesión">
+                            <Ionicons name="log-out-outline" size={26} color="#fff" />
+                        </Pressable>
                     </View>
                 </View>
             </SafeAreaView>
 
             <View style={styles.content}>{children}</View>
-
-            <SideMenu visible={menuOpen} onClose={handleCloseMenu} />
         </View>
     );
 }
@@ -53,7 +62,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
     },
-    brand: { flexDirection: "row", alignItems: "center", gap: 8 },
+    left: { flexDirection: "row", alignItems: "center", gap: 10 },
+    right: { flexDirection: "row", alignItems: "center", gap: 12 },
     logo: { width: 40, height: 28, tintColor: "#fff" },
     brandText: { color: "#fff", fontSize: 18, fontWeight: "700" },
     chip: { backgroundColor: colors.redDark, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
