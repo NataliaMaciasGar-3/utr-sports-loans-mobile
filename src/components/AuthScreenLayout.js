@@ -1,14 +1,66 @@
-import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
+import {
+    View, Text, Image, ScrollView, Keyboard, TextInput, Dimensions, StyleSheet,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../utils/theme";
 
+// Los campos usan esto para pedir que se les haga visibles al enfocarse
+export const EnsureVisibleContext = createContext(() => { });
+
 export default function AuthScreenLayout({ title, subtitle, children }) {
+    const scrollRef = useRef(null);
+    const scrollY = useRef(0);
+    const keyboardTop = useRef(null); // posición donde empieza el teclado
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    // Si el campo enfocado queda debajo del teclado, hace scroll lo justo
+    const ensureVisible = useCallback(() => {
+        const input = TextInput.State.currentlyFocusedInput?.();
+        if (!input || keyboardTop.current == null) return;
+
+        input.measureInWindow((x, y, w, h) => {
+            const overflow = y + h + 32 - keyboardTop.current;
+            if (overflow > 0) {
+                scrollRef.current?.scrollTo({ y: scrollY.current + overflow, animated: true });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+            const { height, screenY } = e.endCoordinates;
+            keyboardTop.current = screenY ?? Dimensions.get("screen").height - height;
+            setKeyboardHeight(height);
+            setTimeout(ensureVisible, 80); // espera a que se agregue el espacio inferior
+        });
+        const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+            keyboardTop.current = null;
+            setKeyboardHeight(0);
+        });
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, [ensureVisible]);
+
+    // Al cambiar de un campo a otro con el teclado ya abierto
+    const handleFieldFocus = useCallback(() => setTimeout(ensureVisible, 120), [ensureVisible]);
+
+    const handleScroll = (e) => {
+        scrollY.current = e.nativeEvent.contentOffset.y;
+    };
+
     return (
-        <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <EnsureVisibleContext.Provider value={handleFieldFocus}>
             <ScrollView
-                contentContainerStyle={styles.scroll}
+                ref={scrollRef}
+                style={styles.root}
+                contentContainerStyle={[styles.scroll, { paddingBottom: keyboardHeight }]}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
             >
                 <View style={styles.hero}>
                     {/* Círculos decorativos */}
@@ -34,7 +86,7 @@ export default function AuthScreenLayout({ title, subtitle, children }) {
                     <View style={styles.fields}>{children}</View>
                 </View>
             </ScrollView>
-        </KeyboardAvoidingView>
+        </EnsureVisibleContext.Provider>
     );
 }
 
