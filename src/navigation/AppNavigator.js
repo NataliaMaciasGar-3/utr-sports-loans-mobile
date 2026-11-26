@@ -14,6 +14,7 @@ import LoanRequestScreen from "../screens/LoanRequestScreen";
 import LoansScreen from "../screens/LoansScreen";
 import AdminScreen from "../screens/AdminScreen";
 import ForbiddenScreen from "../screens/ForbiddenScreen";
+import NotFoundScreen from "../screens/NotFoundScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -60,19 +61,29 @@ export default function AppNavigator() {
         );
     }
 
+    // Si algo navega a una pantalla que no existe, se muestra NotFound
+    const handleUnhandledAction = () => {
+        const routeNames = navigationRef.getRootState()?.routeNames ?? [];
+        if (navigationRef.isReady() && routeNames.includes("NotFound")) {
+            navigationRef.navigate("NotFound");
+        }
+    };
+
     return (
-        <NavigationContainer ref={navigationRef}>
+        <NavigationContainer ref={navigationRef} onUnhandledAction={handleUnhandledAction}>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {!user ? (
                     <>
                         <Stack.Screen name="Login" component={LoginScreen} />
                         <Stack.Screen name="Register" component={RegisterScreen} />
+                        <Stack.Screen name="NotFound" component={NotFoundScreen} />
                     </>
                 ) : (
                     <>
                         <Stack.Screen name="MainTabs" component={MainTabs} />
                         <Stack.Screen name="LoanRequest" component={LoanRequestScreen} />
                         <Stack.Screen name="Forbidden" component={ForbiddenScreen} />
+                        <Stack.Screen name="NotFound" component={NotFoundScreen} />
                     </>
                 )}
             </Stack.Navigator>
