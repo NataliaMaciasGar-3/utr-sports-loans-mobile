@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../utils/theme";
+import { EnsureVisibleContext } from "./AuthScreenLayout";
 
-export default function AuthInput({ label, error, secure = false, style, ...inputProps }) {
+export default function AuthInput({ label, error, secure = false, style, onFocus, ...inputProps }) {
     const [hidden, setHidden] = useState(secure);
+    const ensureVisible = useContext(EnsureVisibleContext);
 
     const handleToggleHidden = () => setHidden((h) => !h);
+    const handleFocus = (e) => {
+        ensureVisible();
+        onFocus?.(e);
+    };
 
     return (
         <View style={styles.field}>
@@ -17,6 +23,7 @@ export default function AuthInput({ label, error, secure = false, style, ...inpu
                     style={[styles.input, style]}
                     placeholderTextColor="#9ca3af"
                     secureTextEntry={hidden}
+                    onFocus={handleFocus}
                     {...inputProps}
                 />
                 {secure && (
